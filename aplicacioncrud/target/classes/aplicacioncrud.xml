@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8090" doc:name="HTTP Listener Configuration"/>
+	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="lbances" database="bdcomercio" doc:name="MySQL Configuration"/>
+	<db:template-query name="Template_Query" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select * from producto where codpro=:codigo]]></db:parameterized-query>
+		<db:in-param name="codigo" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query1" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[insert into producto(codpro,codcat,despro,unipro,pcopro,pvepro,stopro,frepro) values(:codpro,:codcat,:despro,:unipro,:pcopro,:pvepro,:stopro,:frepro)]]></db:parameterized-query>
+		<db:in-param name="codpro" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codpro').toString())]"/>
+		<db:in-param name="codcat" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codcat').toString())]"/>
+		<db:in-param name="despro" type="VARCHAR" defaultValue="#[message.payload.get('despro').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="unipro" type="VARCHAR" defaultValue="#[message.payload.get('unipro').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="pcopro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('pcopro').toString())]"/>
+		<db:in-param name="pvepro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('pvepro').toString())]"/>
+		<db:in-param name="stopro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('stopro').toString())]"/>
+		<db:in-param name="frepro" type="VARCHAR" defaultValue="#[message.payload.get('frepro').toString().replaceAll('\&quot;','')]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query2" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[update producto set codcat=:codcat,despro=:despro,
+unipro=:unipro, pcopro=:pcopro, pvepro=:pvepro,
+stopro=:stopro, frepro=:frepro where codpro=:codigo]]></db:parameterized-query>
+		<db:in-param name="codigo" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="codcat" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codcat').toString())]"/>
+		<db:in-param name="despro" type="VARCHAR" defaultValue="#[message.payload.get('codcat').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="unipro" type="VARCHAR" defaultValue="#[message.payload.get('unipro').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="pcopro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('pcopro').toString())]"/>
+		<db:in-param name="pvepro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('pvepro').toString())]"/>
+		<db:in-param name="stopro" type="DOUBLE" defaultValue="#[Double.parseDouble(message.payload.get('stopro').toString())]"/>
+		<db:in-param name="frepro" type="VARCHAR" defaultValue="#[message.payload.get('frepro').toString().replaceAll('\&quot;','')]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query3" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[delete from producto where codpro=:codigo]]></db:parameterized-query>
+		<db:in-param name="codigo" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query4" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select * from producto
+where frepro>=:desde and frepro<=:hasta]]></db:parameterized-query>
+		<db:in-param name="desde" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.desde]"/>
+		<db:in-param name="hasta" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.hasta]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query5" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select * from usuario where nicus=:nicke and pasus=:clave]]></db:parameterized-query>
+		<db:in-param name="nicke" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.uri.params'.nicke]"/>
+		<db:in-param name="clave" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.uri.params'.clave]"/>
+	</db:template-query>
+	<flow name="leerProductos">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/LeerProductos" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:parameterized-query><![CDATA[select * from producto]]></db:parameterized-query>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="BuscarProducto">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/BuscarProducto/{id}" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="AgregarProducto">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/Producto" allowedMethods="POST" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:insert config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query1"/>
+		</db:insert>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ActualizarProducto">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/actualizarProducto/{id}" allowedMethods="PUT" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:update config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query3"/>
+		</db:update>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="EliminarProducto">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/eliminarProducto/{id}" allowedMethods="DELETE" doc:name="HTTP"/>
+		<db:delete config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query3"/>
+		</db:delete>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="aplicacioncrudFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/FiltrarFechas" allowedMethods="GET" doc:name="FiltrarFechas"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query4"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="aplicacioncrudFlow1">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/Inversion" allowedMethods="GET" doc:name="Inversion"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:parameterized-query><![CDATA[select a.codcat, max(a.descat) as categoria, 
+count(b.codpro) as cantidad, round(sum(b.pcopro * b.stopro),2) as valorizado
+from categoria a inner join producto b on a.codcat=b.codcat
+group by a.codcat]]></db:parameterized-query>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ValidarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/validarUsuario/{nicke}/{clave}" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query5"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+</mule>

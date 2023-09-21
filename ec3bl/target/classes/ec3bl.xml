@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8090" doc:name="HTTP Listener Configuration"/>
+	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="lbances" database="ComercioBL" doc:name="MySQL Configuration"/>
+	<db:template-query name="Template_Query" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[insert into comprobante(nrocom,tipoco,fecemi,codcli,importe)
+values(:nrocom,:tipoco,:fecemi,:codcli,:importe)]]></db:parameterized-query>
+		<db:in-param name="nrocom" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('nrocom').toString())]"/>
+		<db:in-param name="tipoco" type="VARCHAR" defaultValue="#[message.payload.get('tipoco').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="fecemi" type="VARCHAR" defaultValue="#[message.payload.get('fecemi').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codcli" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codcli').toString())]"/>
+		<db:in-param name="importe" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('importe').toString())]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query1" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select 
+    count(co.nrocom) as 'Cantidad de Comprobantes',
+    round(sum(co.importe - (co.importe * 0.18)), 2) as 'Sub Total',
+    round(sum(co.importe * 0.18), 2) as 'IGV',
+    sum(co.importe) as 'Importe total'
+from 
+    comprobante co
+where 
+    fecemi >= :desde and fecemi <= :hasta;]]></db:parameterized-query>
+		<db:in-param name="desde" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.desde]"/>
+		<db:in-param name="hasta" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.hasta]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query2" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[SELECT
+    cl.apecli AS 'Apellido del cliente',
+    cl.nomcli AS 'Nombre del cliente',
+    cl.dnicli AS 'DNI del cliente',
+    co.nrocom AS 'Nro. de Comprobante',
+    co.fecemi AS 'Fecha de emisión',
+    ROUND(SUM(co.importe - (co.importe * 0.18)), 2) AS 'Sub Total',
+    ROUND(SUM(co.importe * 0.18), 2) AS 'IGV',
+    SUM(co.importe) AS 'Importe total'
+FROM
+    cliente cl
+INNER JOIN comprobante co ON cl.codcli = co.codcli
+WHERE
+    cl.codcli = :codigo
+GROUP BY
+    cl.codcli, cl.apecli, cl.nomcli, cl.dnicli, co.nrocom, co.fecemi;]]></db:parameterized-query>
+		<db:in-param name="codigo" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query3" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[update 
+	comprobante
+set
+	tipoco=:tipoco, fecemi=:fecemi, codcli=:codcli, importe=:importe
+where
+	nrocom=:codigo;]]></db:parameterized-query>
+		<db:in-param name="codigo" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="tipoco" type="VARCHAR" defaultValue="#[message.payload.get('tipoco').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="fecemi" type="VARCHAR" defaultValue="#[message.payload.get('fecemi').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codcli" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codcli').toString())]"/>
+		<db:in-param name="importe" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('importe').toString())]"/>
+	</db:template-query>
+	<flow name="AgregarComprobante">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/AddCom" allowedMethods="POST" doc:name="AddCom"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:insert config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query"/>
+		</db:insert>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ConsultaImporteTotalPorFechas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/consultaImporteTotal" allowedMethods="GET" doc:name="ConsultaImporteTotal"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query1"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ConsultarComprobantes">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/ConCompro/{id}" allowedMethods="GET" doc:name="ConCompro"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query2"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="UpdateComprobante">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/updateComprobante/{id}" allowedMethods="PUT" doc:name="UpdateComprobante"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:update config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query3"/>
+		</db:update>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+</mule>

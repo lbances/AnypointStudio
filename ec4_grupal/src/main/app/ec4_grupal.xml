@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8090" doc:name="HTTP Listener Configuration"/>
+	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="lbances" database="FabricasEF" doc:name="MySQL Configuration"/>
+	<db:template-query name="Template_Query" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[insert into usuario(codusu, nomusu, clausu, codfab)
+values(:codusu, :nomusu, :clausu, :codfab)]]></db:parameterized-query>
+		<db:in-param name="codusu" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codusu').toString())]"/>
+		<db:in-param name="nomusu" type="VARCHAR" defaultValue="#[message.payload.get('nomusu').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="clausu" type="VARCHAR" defaultValue="#[message.payload.get('clausu').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codfab" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codfab').toString())]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query1" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[update usuario
+set nomusu=:nomusu,clausu=:clausu,codfab=:codfab
+where codusu=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="nomusu" type="VARCHAR" defaultValue="#[message.payload.get('nomusu').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="clausu" type="VARCHAR" defaultValue="#[message.payload.get('clausu').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codfab" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codfab').toString())]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query2" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[delete from usuario where codusu=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query3" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[insert into fabrica(codfab, nomfab)
+values (:codfab,:nomfab)]]></db:parameterized-query>
+		<db:in-param name="codfab" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codfab').toString())]"/>
+		<db:in-param name="nomfab" type="VARCHAR" defaultValue="#[message.payload.get('nomfab').toString().replaceAll('\&quot;','')]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query4" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[update fabrica
+set nomfab=:nomfab
+where codfab=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="nomfab" type="VARCHAR" defaultValue="#[message.payload.get('nomfab').toString().replaceAll('\&quot;','')]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query5" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[delete from fabrica where codfab=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query6" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[insert into piezas(codpie, fecpie, linpie, codfab, codusu, canpie)
+values(:codpie,:fecpie,:linpie,:codfab,:codusu,:canpie)]]></db:parameterized-query>
+		<db:in-param name="codpie" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codpie').toString())]"/>
+		<db:in-param name="fecpie" type="VARCHAR" defaultValue="#[message.payload.get('fecpie').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="linpie" type="VARCHAR" defaultValue="#[message.payload.get('linpie').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codfab" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codfab').toString())]"/>
+		<db:in-param name="codusu" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codusu').toString())]"/>
+		<db:in-param name="canpie" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('canpie').toString())]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query7" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[update piezas
+set fecpie=:fecpie,linpie=:linpie,codfab=:codfab,codusu=:codusu,canpie=:canpie
+where codpie=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="fecpie" type="VARCHAR" defaultValue="#[message.payload.get('fecpie').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="linpie" type="VARCHAR" defaultValue="#[message.payload.get('linpie').toString().replaceAll('\&quot;','')]"/>
+		<db:in-param name="codfab" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codfab').toString())]"/>
+		<db:in-param name="codusu" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('codusu').toString())]"/>
+		<db:in-param name="canpie" type="INTEGER" defaultValue="#[Integer.parseInt(message.payload.get('canpie').toString())]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query8" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[delete from piezas where codpie=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query9" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select * from usuario
+where nomusu=:id and clausu=:pass]]></db:parameterized-query>
+		<db:in-param name="id" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+		<db:in-param name="pass" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.uri.params'.pass]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query10" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select
+    p.codpie,
+    p.fecpie,
+    p.linpie,
+    f.nomfab,
+    u.nomusu,
+    p.canpie
+from
+    piezas p
+join
+    fabrica f on p.codfab = f.codfab
+join
+    usuario u on p.codusu = u.codusu
+    
+where fecpie>=:desde and fecpie<=:hasta]]></db:parameterized-query>
+		<db:in-param name="desde" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.desde]"/>
+		<db:in-param name="hasta" type="VARCHAR" defaultValue="#[message.inboundProperties.'http.query.params'.hasta]"/>
+	</db:template-query>
+	<db:template-query name="Template_Query11" doc:name="Template Query">
+		<db:parameterized-query><![CDATA[select *  from usuario where codusu=:id]]></db:parameterized-query>
+		<db:in-param name="id" type="INTEGER" defaultValue="#[message.inboundProperties.'http.uri.params'.id]"/>
+	</db:template-query>
+	<flow name="ConsultarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/readUsuario/{id}" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query11"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="RegistrarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/createUsuario" allowedMethods="POST" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:insert config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query"/>
+		</db:insert>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ActualizarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/updateUsuario/{id}" allowedMethods="PUT" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:update config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query1"/>
+		</db:update>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="EliminarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/deleteUsuario/{id}" allowedMethods="DELETE" doc:name="HTTP"/>
+		<db:delete config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query2"/>
+		</db:delete>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+	</flow>
+	<flow name="ConsultarFabrica">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/readFabrica" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:parameterized-query><![CDATA[select * from fabrica]]></db:parameterized-query>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="RegistrarFabrica">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/createFabrica" allowedMethods="POST" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:insert config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query3"/>
+		</db:insert>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ActualizarFabrica">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/updateFabrica/{id}" allowedMethods="PUT" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:update config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query4"/>
+		</db:update>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="EliminarFabrica">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/deleteFabrica/{id}" allowedMethods="DELETE" doc:name="HTTP"/>
+		<db:delete config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query5"/>
+		</db:delete>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+	</flow>
+	<flow name="ConsultarPiezas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/readPiezas" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:parameterized-query><![CDATA[select * from piezas]]></db:parameterized-query>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="RegistrarPiezas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/createPiezas" allowedMethods="POST" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:insert config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query6"/>
+		</db:insert>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="ActualizarPiezas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/updatePiezas/{id}" allowedMethods="PUT" doc:name="HTTP"/>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+		<db:update config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query7"/>
+		</db:update>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="EliminarPiezas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/deletePiezas/{id}" allowedMethods="DELETE" doc:name="HTTP"/>
+		<db:delete config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query8"/>
+		</db:delete>
+		<json:json-to-object-transformer doc:name="JSON to Object"/>
+	</flow>
+	<flow name="ValidarUsuario">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/validarUsuario/{id}/{pass}" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query9"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+	<flow name="FiltrarFechas">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/filtrarFechas" allowedMethods="GET" doc:name="HTTP"/>
+		<db:select config-ref="MySQL_Configuration" doc:name="Database">
+			<db:template-query-ref name="Template_Query10"/>
+		</db:select>
+		<json:object-to-json-transformer doc:name="Object to JSON"/>
+	</flow>
+</mule>
